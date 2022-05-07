@@ -6,6 +6,7 @@ from pimoroni import Button
 import array, time
 from machine import Pin, PWM
 import rp2
+import math
 
 s = Servo(servo2040.SERVO_18)
 
@@ -69,12 +70,47 @@ class ws2812():
         self.sm.put(dimmer_ar, 8)
 #         time.sleep_ms(10)
  
-    def fill_rgb(self, i, color):
-        self.ar[i] = (color[1]<<16) + (color[0]<<8) + color[2]
+    def set_rgb2(self, i, r,b,g):
+        self.ar[i] = (g<<16) + (r<<8) + b
+        self.show()
  
-    def fill(self, color):
+    def fill(self, r,g,b):
         for i in range(len(self.ar)):
-            self.fill_rgb(i, color)
+            self.set_rgb2(i, r,g,b)
+        self.show()
+    
+    def rgb2hsv(self, r:int, g:int, b:int):
+        h = 0
+        s = 0
+        v = 0
+        # constrain the values to the range 0 to 1
+        r_normal, g_normal, b_normal,  = r / 255, g / 255, b / 255
+        cmax = max(r_normal, g_normal, b_normal)
+        cmin = min(r_normal, g_normal, b_normal)
+        delta = cmax - cmin
+        
+        # Hue calculation
+        if(delta ==0):
+            h = 0
+        elif (cmax == r_normal):
+            h = (60 * (((g_normal - b_normal) / delta) % 6))
+        elif (cmax == g_normal):
+            h = (60 * (((b_normal - r_normal) / delta) + 2))
+        elif (cmax == b_normal):
+            h = (60 * (((r_normal - g_normal) / delta) + 4))
+        
+        # Saturation calculation
+        if cmax== 0:
+            s = 0
+        else:
+            s = delta / cmax
+            
+        # Value calculation
+        v = cmax
+        
+        print(f"normals are: {r_normal}, {g_normal}, {b_normal}, cmax is {cmax}, delta is {delta}")
+        print(f"h:{h}, s:{s}, v:{v}")
+        return h, s, v        
  
     def set_rgb(self, index:int, red:int, green:int, blue:int):
         dimmer_ar = array.array("I", [0 for _ in range(self.NUM_LEDS)])
@@ -86,8 +122,85 @@ class ws2812():
         self.sm.put(dimmer_ar, 8)
 #         time.sleep_ms(10)
         self.show()
+    
+    def set_hsv(self, index, hue, sat, val):
+        r,g,b = self.hsv2rgb(hue, sat,val)
+#         print(f'r:{r}, g:{g}, b:{b}, hue:{hue}, sat:{sat}, val:{val}')
+        self.set_rgb2(index, r, g, b)
+        self.show()
+    
+    def hsv2rgb(self, hue, sat, val):
+        """ Sets the Hue Saturation and Value of the indexed RGB LED"""
+    
+        i = math.floor(hue * 6)
+        f = hue * 6 - i
+        p = val * (1 - sat)
+        q = val * (1 - f * sat)
+        t = val * (1 - (1 - f) * sat)
 
-    def cycle
+        r, g, b = [
+            (val, t, p),
+            (q, val, p),
+            (p, val, t),
+            (p, q, val),
+            (t, p, val),
+            (val, p, q),
+        ][int(i % 6)]
+        r = int(r*255)
+        g = int(g*255)
+        b = int(b*255)
+        
+        return r, g, b
+
+    def cycle(self):
+        """ Cycle through all the colours """
+#         pass
+        for i in range (0, 100, 1):
+            for j in range (self.NUM_LEDS):
+                self.set_hsv(j,i/100,1,1) 
+                sleep(0.0001)
+    def spin(self, loops=None):
+        if not loops:
+            loops = 10
+        for loop in range(0,loops):
+            for i in range(0,self.NUM_LEDS):
+                if i == self.NUM_LEDS:
+                    self.set_hsv(i-1,0,0,0)
+                else:
+                    print(f'i is {i}')
+                    self.set_rgb2(i,255,0,0)
+                    if i > 0:
+                        self.set_hsv(i-1,1,1,0)
+                        
+                print(f'i:{i}')
+                
+                delay = 1/ self.NUM_LEDS
+                print(f'delay:{delay}')
+                sleep(delay)
+            
+            self.set_rgb2(11,0,0,0)
+            
+    def rainbow_chaser(self, loops=None):
+        if not loops:
+            loops = 10
+        
+        # loop through the colors
+        for loop in range(loops):
+            for color in range(0,10,1):
+                for led in range(self.NUM_LEDS): 
+                    col = float(color / 10)
+                    self.set_hsv(led, col, 1, 1)
+                    print(f'color: {color}, col: {col}')
+                    sleep(0.01)
+                
+    def disable_all(self):
+        for led in range(self.NUM_LEDS):
+            self.set_hsv(led, 0, 0, 0)
+            
+    def full_beam(self):
+        for led in range(self.NUM_LEDS):
+            self.set_hsv(led, 1, 0, 1)
+        
 class Cyber_glasses():
     
     arm_position = 'down'
@@ -96,7 +209,10 @@ class Cyber_glasses():
     def __init__(self):
         self.led_strip.set_rgb(0,255,0,0)
         self.led_strip.show()
-        self.led_strip.fill(self.led_strip.WHITE)
+        self.led_strip.fill(0,0,0)
+#         self.pulse()
+            
+    def pulse(self):
         for i in range(-1,100,1):
             self.led_strip.brightness = i / 100
 #             self.led_strip.show()
@@ -117,17 +233,26 @@ class Cyber_glasses():
         sleep(0.5)
     
     def glow(self, r,g,b):
-        for led in range(self.NUM_LEDS):
+        for led in range(self.led_strip.NUM_LEDS):
             self.led_strip.set_rgb(led, r, g, b)
-            
-
+        
 glasses = Cyber_glasses()
-glasses.led_strip.set_rgb(1,255,255,0)
-glasses.led_strip.show()
+#glasses.led_strip.rgb2hsv(255,0,0)
 
-# while True:
-#     glasses.glow(255,0,0)
-#     glasses.light_away()
-#     sleep(1)
-#     glasses.light_down()
-#     sleep(1)
+# glasses.led_strip.set_rgb2(1,255,255,0)
+
+# glasses.led_strip.spin(1)
+# glasses.led_strip.rainbow_chaser(10)
+
+while True:
+    glasses.light_away()
+    sleep(1)
+    glasses.light_down()
+    sleep(0.25)
+    glasses.led_strip.spin(1)
+    glasses.led_strip.rainbow_chaser(2)
+    sleep(1)
+    glasses.led_strip.full_beam()
+    sleep(10)
+    glasses.led_strip.disable_all()
+    glasses.light_away()
