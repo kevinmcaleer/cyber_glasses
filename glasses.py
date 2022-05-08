@@ -200,6 +200,17 @@ class ws2812():
     def full_beam(self):
         for led in range(self.NUM_LEDS):
             self.set_hsv(led, 1, 0, 1)
+    
+    def off(self):
+        self.disable_all()
+        
+    def flash(self, loop):
+        for loops in range(loop):
+            for led in range(self.NUM_LEDS):
+                self.set_hsv(led, 1, 0, 1)
+            sleep(0.5)
+            self.off()
+            sleep(0.5)
         
 class Cyber_glasses():
     
@@ -210,7 +221,7 @@ class Cyber_glasses():
         self.led_strip.set_rgb(0,255,0,0)
         self.led_strip.show()
         self.led_strip.fill(0,0,0)
-#         self.pulse()
+        self.pulse()
             
     def pulse(self):
         for i in range(-1,100,1):
@@ -234,7 +245,7 @@ class Cyber_glasses():
     
     def glow(self, r,g,b):
         for led in range(self.led_strip.NUM_LEDS):
-            self.led_strip.set_rgb(led, r, g, b)
+            self.led_strip.set_rgb2(led, r, g, b)
         
 glasses = Cyber_glasses()
 #glasses.led_strip.rgb2hsv(255,0,0)
@@ -253,6 +264,6 @@ while True:
     glasses.led_strip.rainbow_chaser(2)
     sleep(1)
     glasses.led_strip.full_beam()
-    sleep(10)
+    sleep(2)
     glasses.led_strip.disable_all()
     glasses.light_away()
