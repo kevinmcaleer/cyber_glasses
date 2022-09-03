@@ -221,7 +221,7 @@ class Cyber_glasses():
         self.led_strip.set_rgb(0,255,0,0)
         self.led_strip.show()
         self.led_strip.fill(0,0,0)
-        self.pulse()
+#         self.pulse()
             
     def pulse(self):
         for i in range(-1,100,1):
@@ -246,6 +246,9 @@ class Cyber_glasses():
     def glow(self, r,g,b):
         for led in range(self.led_strip.NUM_LEDS):
             self.led_strip.set_rgb2(led, r, g, b)
+
+    def off(self):
+        self.led_strip.off()
         
 glasses = Cyber_glasses()
 #glasses.led_strip.rgb2hsv(255,0,0)
@@ -256,14 +259,17 @@ glasses = Cyber_glasses()
 # glasses.led_strip.rainbow_chaser(10)
 
 while True:
-    glasses.light_away()
-    sleep(1)
-    glasses.light_down()
-    sleep(0.25)
-    glasses.led_strip.spin(1)
-    glasses.led_strip.rainbow_chaser(2)
-    sleep(1)
-    glasses.led_strip.full_beam()
-    sleep(2)
-    glasses.led_strip.disable_all()
-    glasses.light_away()
+    try:
+        glasses.light_away()
+        sleep(1)
+        glasses.light_down()
+        sleep(0.25)
+        glasses.led_strip.spin(1)
+        glasses.led_strip.rainbow_chaser(2)
+        sleep(1)
+        glasses.led_strip.full_beam()
+        sleep(10)
+        glasses.led_strip.disable_all()
+        glasses.light_away()
+    finally:
+        glasses.off()
